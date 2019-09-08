@@ -48,10 +48,12 @@ public class AppImplementation {
 		//DBHandler db = new DBHBuilder("jdbc:mysql://34.76.250.24:3306/").pass("sqljenkinscombo").buildHandler(); //This one is for the sql db I set up
 		DBHandler db = new DBHBuilder("jdbc:mysql://localhost:3307").buildHandler(); // This is for local tests!
 		//ResultSet result;
-		
+		//db.setSilentExecution(true);
+		//db.refreshDBConnection();
 		// Provided connection is successful
 		if(db.accessDB()) {
 			System.out.println("Database connection sucessful!");
+			//db.refreshDBConnection();
 			
 			
 			db.update("DROP DATABASE IF EXISTS " + dbName + ";");

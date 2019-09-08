@@ -6,11 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class DBManager implements DBMInterface {
-    //private String jdbcDriver = "com.mysql.cj.jdbc.Driver";
-    //static final String DB_URL = "jdbc:mysql://localhost:3306";
-    //private String dbURL = "jdbc:mysql://34.76.250.24:3306/TestDatabase?useSSL=false";
-    
+public abstract class DBManager implements DBMInterface {    
     private String jdbcDriver;
     private String dbURL;
     
@@ -23,6 +19,7 @@ public class DBManager implements DBMInterface {
     private ResultSet queryResult; // Contains the result of the most recent query
     
     private boolean dBConnected; // Defaults to false
+    private boolean silentExecution; // If print statements should be used to demo
     
     
     public DBManager(String jdbcDriver, String dbURL, String user, String pass) {
@@ -35,58 +32,43 @@ public class DBManager implements DBMInterface {
     
     // Initialise connection to database, returns false if connection failed
     public boolean accessDB() {
-        if(!dBConnected) {
+        if(!this.dBConnected) {
 	    	try {
-	            Class.forName(jdbcDriver);
-	            System.out.println("Connecting to DB...");
-	            conn = DriverManager.getConnection(dbURL, user, pass);
-	            stmt = conn.createStatement(); // Setup statement
+	            Class.forName(this.jdbcDriver);
+	            printStatus("Connecting to DB...");
+	            this.conn = DriverManager.getConnection(this.dbURL, this.user, this.pass);
+	            this.stmt = this.conn.createStatement(); // Setup statement
 	            
-	            dBConnected = true; // Database is connected!
+	            this.dBConnected = true; // Database is connected!
 	            return true;
 	        } catch (ClassNotFoundException | SQLException e) {
-	            System.out.println("DB Connection Failed...");
+	        	printStatus("DB Connection Failed...");
 	            e.printStackTrace();
 	            
-	            dBConnected = false; // Database is not connected
+	            this.dBConnected = false; // Database is not connected
 	            return false;
 	        }
     	} else {
-    		System.out.println("A DB is already connected...");
+    		printStatus("A DB is already connected...");
     		return false;
     	}
         
     }
     
-    //Attempts to close and then reestablish a connection to the database
-    public boolean refreshDBConnection() {
-    	if(dBConnected) {
-    		if(closeDB()) {
-    	   		return accessDB();
-    		} else {
-    			return false;
-    		}
-    	} else {
-    		System.out.println("No DB to Refresh Connection With...");
-    		return false;
-    	}
-    	
-    }
-    
     //Update the information on the database in some way
     public boolean update(String sql) {
-        if(dBConnected) {
+        if(this.dBConnected) {
 	    	try {
-	            stmt.executeUpdate(sql);
-	            System.out.println("DB Updated...");
+	            this.stmt.executeUpdate(sql);
+	            printStatus("DB Updated...");
 	            return true;
 	        } catch (SQLException e) {
 	            e.printStackTrace();
-	            System.out.println("DB Update Failed...");
+	            printStatus("DB Update Failed...");
 	            return false;
 	        }
     	} else {
-    		System.out.println("Please Use accessDB to Connect to a DB...");
+    		printStatus("Please Use accessDB to Connect to a DB...");
     		return false;
     	}
     }
@@ -94,12 +76,12 @@ public class DBManager implements DBMInterface {
     // Attempts to query the database, if succeeded, stores within queryResult
     public boolean query(String sql){
         try {
-			queryResult = stmt.executeQuery(sql);
-			System.out.println("Query Success...");
+			this.queryResult = this.stmt.executeQuery(sql);
+			printStatus("Query Success...");
 			return true;
 		} catch (SQLException e) {
 			//e.printStackTrace();
-			System.out.println("Query Failed...");
+			printStatus("Query Failed...");
 			return false;
 		}
     }
@@ -107,34 +89,41 @@ public class DBManager implements DBMInterface {
     //Attempts to close a query, returns false if failed
     public boolean closeQuery() {
     	try {
-			queryResult.close();
-			System.out.println("Query Closed...");
+			this.queryResult.close();
+			printStatus("Query Closed...");
 			return true;
 		} catch (SQLException | NullPointerException e) {
 			//e.printStackTrace();
-			System.out.println("Query Close Failed...");
+			printStatus("Query Close Failed...");
 			return false;
 		}
     }
     
     public boolean closeDB() {
-        if(dBConnected) {
+        if(this.dBConnected) {
 	    	try {
-	            conn.close();
-	            System.out.println("DB Disconnected...");
+	            this.conn.close();
+	            printStatus("DB Disconnected...");
 	            
-	            dBConnected = false;
+	            this.dBConnected = false;
 	            return true;
 	        } catch (SQLException e) {
 	            // TODO Auto-generated catch block
 	            //e.printStackTrace();
-	        	System.out.println("DB Disconnect Failed...");
+	        	printStatus("DB Disconnect Failed...");
 	            return false;
 	        }
         } else {
-        	System.out.println("Not Currently Connected to a DB...");
+        	printStatus("Not Currently Connected to a DB...");
         	return false;
         }
+    }
+    
+    //Prints status to console provided silent execution is off (It is by default)
+    protected void printStatus(String status) {
+    	if(!this.silentExecution) {
+    		System.out.println(status);
+    	}
     }
     
     
@@ -159,42 +148,54 @@ public class DBManager implements DBMInterface {
         dBConnectionWarning();
     }
     
+    //If true, no messages will print out when tasks execute
+    public void setSilentExecution(boolean silentExecution) {
+    	this.silentExecution = silentExecution;
+    }
+    
+    //This feels like a bad idea...
+    protected void setDBConnection(boolean dbConnected) {
+    	this.dBConnected = dbConnected;
+    }
+    
     // getters
     public String getPass() {
-        return pass;
+        return this.pass;
     }
     
     public String getUser() {
-        return user;
+        return this.user;
     }
     
     public String getJdbcDriver() {
-        return jdbcDriver;
+        return this.jdbcDriver;
     }
     
     public String getDbURL() {
-        return dbURL;
+        return this.dbURL;
     }
     
     
     public ResultSet getQueryResult() {
-    	return queryResult;
+    	return this.queryResult;
     }
     
     // Returns the current status of the DB connection true if connected
     public boolean isDBConnected() {
-    	return dBConnected;
+    	return this.dBConnected;
     }
     
-    public void setDBConnection(boolean dbConnected) {
-    	this.dBConnected = dbConnected;
+    //Gets whether or not silent execution is enabled
+    public boolean getSilentExecution(){
+    	return this.silentExecution;
     }
     
     private void dBConnectionWarning() {
-    	if(dBConnected) {
-    		System.out.println("Please note that any changes to DB connection information will not apply until the current connection is closed and a new accessDB request is given...");
-    		System.out.println("Alternatively, use refreshDBConnection to update the connection now...");
+    	if(this.dBConnected) {
+    		printStatus("Please note that any changes to DB connection information will not apply until the current connection is closed and a new accessDB request is given...");
+    		printStatus("Alternatively, use refreshDBConnection to update the connection now...");
     	}
     }
+    
     
 }

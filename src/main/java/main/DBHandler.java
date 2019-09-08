@@ -58,10 +58,25 @@ public class DBHandler extends DBManager{
 			return update(result);
 			
 		} else {
-			System.out.println("Please Use accessDB to Connect to a DB...");
+			printStatus("Please Use accessDB to Connect to a DB...");
 			return false;
 		}
 	}
+	
+    //Attempts to close and then reestablish a connection to the database
+    public boolean refreshDBConnection() {
+    	if(isDBConnected()) {
+    		if(closeDB()) {
+    	   		return accessDB();
+    		} else {
+    			return false;
+    		}
+    	} else {
+    		printStatus("No DB to Refresh Connection With...");
+    		return false;
+    	}
+    	
+    }
 	
 
 }
